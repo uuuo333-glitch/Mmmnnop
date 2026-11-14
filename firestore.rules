@@ -1,0 +1,238 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.phoneNumber is string && data.phoneNumber.size() >= 6 && data.phoneNumber.size() <= 20 &&
+             data.countryCode is string && data.countryCode.size() >= 1 && data.countryCode.size() <= 6 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.role in ['owner', 'customer'] &&
+             data.subscriptionActive is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStoreConfig(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 60 &&
+             (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 160)) &&
+             data.badgeLabel is string && data.badgeLabel.size() >= 1 && data.badgeLabel.size() <= 24 &&
+             data.isVerified is bool &&
+             data.tickerText is string && data.tickerText.size() <= 300 &&
+             data.themeMode in ['dark', 'light', 'midnight'] &&
+             data.accentColorHex is string && data.accentColorHex.size() >= 4 && data.accentColorHex.size() <= 12 &&
+             data.chatBackgroundId is string && data.chatBackgroundId.size() >= 1 && data.chatBackgroundId.size() <= 40 &&
+             data.activeAlertSound is string && data.activeAlertSound.size() >= 1 && data.activeAlertSound.size() <= 40 &&
+             data.disappearingMode in ['6h', '24h', 'unlimited'] &&
+             data.blockScreenshots is bool &&
+             data.blockMediaCopy is bool &&
+             data.monthlySubscriptionPrice is number && data.monthlySubscriptionPrice >= 0 && data.monthlySubscriptionPrice <= 100000 &&
+             data.subscriptionCurrency is string && data.subscriptionCurrency.size() >= 1 && data.subscriptionCurrency.size() <= 12 &&
+             (!('instagramHandle' in data) || (data.instagramHandle is string && data.instagramHandle.size() <= 80)) &&
+             (!('instagramBio' in data) || (data.instagramBio is string && data.instagramBio.size() <= 240)) &&
+             (!('facebookUrl' in data) || (data.facebookUrl is string && data.facebookUrl.size() <= 160)) &&
+             (!('snapchatHandle' in data) || (data.snapchatHandle is string && data.snapchatHandle.size() <= 80)) &&
+             (!('seoKeywords' in data) || (data.seoKeywords is string && data.seoKeywords.size() <= 500)) &&
+             (!('customField1Label' in data) || (data.customField1Label is string && data.customField1Label.size() <= 60)) &&
+             (!('customField1Value' in data) || (data.customField1Value is string && data.customField1Value.size() <= 240)) &&
+             (!('customField2Label' in data) || (data.customField2Label is string && data.customField2Label.size() <= 60)) &&
+             (!('customField2Value' in data) || (data.customField2Value is string && data.customField2Value.size() <= 240)) &&
+             (!('customField3Label' in data) || (data.customField3Label is string && data.customField3Label.size() <= 60)) &&
+             (!('customField3Value' in data) || (data.customField3Value is string && data.customField3Value.size() <= 240)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStoreProduct(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 500 &&
+             data.price is number && data.price >= 0 && data.price <= 1000000 &&
+             data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 12 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 50 &&
+             data.imageResKey is string && data.imageResKey.size() <= 60 &&
+             data.inStock is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidChatMessage(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.senderType in ['customer', 'ai_store', 'owner'] &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 2000 &&
+             (!('productId' in data) || (data.productId is string && data.productId.size() <= 128)) &&
+             (!('shipmentId' in data) || (data.shipmentId is string && data.shipmentId.size() <= 128)) &&
+             (!('soundEffectId' in data) || (data.soundEffectId is string && data.soundEffectId.size() <= 60)) &&
+             (!('mediaType' in data) || (data.mediaType is string && data.mediaType.size() <= 40)) &&
+             (!('mediaLabel' in data) || (data.mediaLabel is string && data.mediaLabel.size() <= 120)) &&
+             data.expiresAtEpochMs is int && data.expiresAtEpochMs >= 0 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidStoreStatus(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.headline is string && data.headline.size() >= 1 && data.headline.size() <= 120 &&
+             data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 600 &&
+             data.seoKeywords is string && data.seoKeywords.size() <= 400 &&
+             data.imagePrompt is string && data.imagePrompt.size() <= 400 &&
+             data.imageResKey is string && data.imageResKey.size() <= 60 &&
+             data.validUntilEpochMs is int && data.validUntilEpochMs >= 0 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidShipmentOrder(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.trackingCode is string && data.trackingCode.size() >= 2 && data.trackingCode.size() <= 40 &&
+             data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 80 &&
+             data.carrier is string && data.carrier.size() >= 1 && data.carrier.size() <= 60 &&
+             data.currentStep is int && data.currentStep >= 0 && data.currentStep <= 4 &&
+             data.statusLabel is string && data.statusLabel.size() >= 1 && data.statusLabel.size() <= 80 &&
+             data.etaText is string && data.etaText.size() >= 1 && data.etaText.size() <= 80 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == userId &&
+                       incoming().keys().hasAll(['userId', 'phoneNumber', 'countryCode', 'displayName', 'role', 'subscriptionActive', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'phoneNumber', 'countryCode', 'displayName', 'role', 'subscriptionActive', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['phoneNumber', 'countryCode', 'displayName', 'role', 'subscriptionActive', 'updatedAt']);
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      match /storeConfig/{configId} {
+        allow get: if isValidId(userId) && isValidId(configId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(configId) &&
+                         isOwner(userId) &&
+                         incoming().userId == userId &&
+                         incoming().keys().hasAll(['userId', 'storeName', 'badgeLabel', 'isVerified', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'storeName', 'tagline', 'badgeLabel', 'isVerified', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'instagramHandle', 'instagramBio', 'facebookUrl', 'snapchatHandle', 'seoKeywords', 'customField1Label', 'customField1Value', 'customField2Label', 'customField2Value', 'customField3Label', 'customField3Value', 'createdAt', 'updatedAt']) &&
+                         isValidStoreConfig(incoming());
+
+        allow update: if isValidId(userId) && isValidId(configId) &&
+                         isOwner(userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidStoreConfig(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['storeName', 'tagline', 'badgeLabel', 'isVerified', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'instagramHandle', 'instagramBio', 'facebookUrl', 'snapchatHandle', 'seoKeywords', 'customField1Label', 'customField1Value', 'customField2Label', 'customField2Value', 'customField3Label', 'customField3Value', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(configId) && isOwner(userId);
+      }
+
+      match /products/{productId} {
+        allow get: if isValidId(userId) && isValidId(productId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(productId) &&
+                         isOwner(userId) &&
+                         incoming().userId == userId &&
+                         incoming().keys().hasAll(['userId', 'title', 'description', 'price', 'currency', 'category', 'imageResKey', 'inStock', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'description', 'price', 'currency', 'category', 'imageResKey', 'inStock', 'createdAt', 'updatedAt']) &&
+                         isValidStoreProduct(incoming());
+
+        allow update: if isValidId(userId) && isValidId(productId) &&
+                         isOwner(userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidStoreProduct(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'price', 'currency', 'category', 'imageResKey', 'inStock', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(productId) && isOwner(userId);
+      }
+
+      match /messages/{messageId} {
+        allow get: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(messageId) &&
+                         isOwner(userId) &&
+                         incoming().userId == userId &&
+                         incoming().keys().hasAll(['userId', 'senderType', 'text', 'expiresAtEpochMs', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'senderType', 'text', 'productId', 'shipmentId', 'soundEffectId', 'mediaType', 'mediaLabel', 'expiresAtEpochMs', 'createdAt']) &&
+                         isValidChatMessage(incoming());
+
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(messageId) && isOwner(userId);
+      }
+
+      match /statuses/{statusId} {
+        allow get: if isValidId(userId) && isValidId(statusId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(statusId) &&
+                         isOwner(userId) &&
+                         incoming().userId == userId &&
+                         incoming().keys().hasAll(['userId', 'headline', 'caption', 'seoKeywords', 'imagePrompt', 'imageResKey', 'validUntilEpochMs', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'headline', 'caption', 'seoKeywords', 'imagePrompt', 'imageResKey', 'validUntilEpochMs', 'createdAt']) &&
+                         isValidStoreStatus(incoming());
+
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(statusId) && isOwner(userId);
+      }
+
+      match /shipments/{shipmentId} {
+        allow get: if isValidId(userId) && isValidId(shipmentId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isValidId(userId) && isValidId(shipmentId) &&
+                         isOwner(userId) &&
+                         incoming().userId == userId &&
+                         incoming().keys().hasAll(['userId', 'trackingCode', 'customerName', 'carrier', 'currentStep', 'statusLabel', 'etaText', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'trackingCode', 'customerName', 'carrier', 'currentStep', 'statusLabel', 'etaText', 'createdAt', 'updatedAt']) &&
+                         isValidShipmentOrder(incoming());
+
+        allow update: if isValidId(userId) && isValidId(shipmentId) &&
+                         isOwner(userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidShipmentOrder(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['trackingCode', 'customerName', 'carrier', 'currentStep', 'statusLabel', 'etaText', 'updatedAt']);
+
+        allow delete: if isValidId(userId) && isValidId(shipmentId) && isOwner(userId);
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "متجر واتس",
+  "description": "متجر إلكتروني تفاعلي بنمط المحادثة الفورية مع ذكاء اصطناعي للرد على العملاء وتتبع الشحنات والحالات الدورية والتنبيهات الصوتية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

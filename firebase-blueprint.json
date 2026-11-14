@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "WhatsApp-style phone registration and user role profile linked to Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "phoneNumber": { "type": "string", "description": "Registered mobile phone number" },
+        "countryCode": { "type": "string", "description": "Country dialing code e.g. +966" },
+        "displayName": { "type": "string", "description": "Display name" },
+        "role": { "type": "string", "enum": ["owner", "customer"], "description": "Active user mode" },
+        "subscriptionActive": { "type": "boolean", "description": "Whether monthly store subscription is active" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "phoneNumber", "countryCode", "displayName", "role", "subscriptionActive", "createdAt", "updatedAt"]
+    },
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Owner-configurable store identity, theme, privacy, social links, SEO, and subscription settings.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner UID" },
+        "storeName": { "type": "string", "description": "Store display name" },
+        "tagline": { "type": "string", "description": "Store tagline" },
+        "badgeLabel": { "type": "string", "description": "Subtitle under blue badge e.g. المتجر" },
+        "isVerified": { "type": "boolean", "description": "Blue verified badge toggle" },
+        "tickerText": { "type": "string", "description": "Top animated chat ticker text" },
+        "themeMode": { "type": "string", "enum": ["dark", "light", "midnight"], "description": "Theme mode" },
+        "accentColorHex": { "type": "string", "description": "Selected accent color hex" },
+        "chatBackgroundId": { "type": "string", "description": "Animated chat background ID" },
+        "activeAlertSound": { "type": "string", "description": "Default alert sound ID" },
+        "disappearingMode": { "type": "string", "enum": ["6h", "24h", "unlimited"], "description": "Disappearing messages timer" },
+        "blockScreenshots": { "type": "boolean", "description": "FLAG_SECURE screenshot blocking" },
+        "blockMediaCopy": { "type": "boolean", "description": "Media copy/download lock" },
+        "monthlySubscriptionPrice": { "type": "number", "description": "Owner-set monthly subscription price" },
+        "subscriptionCurrency": { "type": "string", "description": "Subscription currency code" },
+        "instagramHandle": { "type": "string", "description": "Full Instagram integration handle" },
+        "instagramBio": { "type": "string", "description": "Instagram storefront bio" },
+        "facebookUrl": { "type": "string", "description": "Facebook page handle or URL" },
+        "snapchatHandle": { "type": "string", "description": "Snapchat handle" },
+        "seoKeywords": { "type": "string", "description": "Google SEO keywords" },
+        "customField1Label": { "type": "string", "description": "Custom business field 1 label" },
+        "customField1Value": { "type": "string", "description": "Custom business field 1 value" },
+        "customField2Label": { "type": "string", "description": "Custom business field 2 label" },
+        "customField2Value": { "type": "string", "description": "Custom business field 2 value" },
+        "customField3Label": { "type": "string", "description": "Custom business field 3 label" },
+        "customField3Value": { "type": "string", "description": "Custom business field 3 value" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "storeName", "badgeLabel", "isVerified", "tickerText", "themeMode", "accentColorHex", "chatBackgroundId", "activeAlertSound", "disappearingMode", "blockScreenshots", "blockMediaCopy", "monthlySubscriptionPrice", "subscriptionCurrency", "createdAt", "updatedAt"]
+    },
+    "StoreProduct": {
+      "title": "StoreProduct",
+      "description": "Product item showcased in store and AI chat replies.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "currency": { "type": "string" },
+        "category": { "type": "string" },
+        "imageResKey": { "type": "string" },
+        "inStock": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "description", "price", "currency", "category", "imageResKey", "inStock", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "WhatsApp-style chat message with AI reply, product card, shipment card, sound effect, and expiry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "senderType": { "type": "string", "enum": ["customer", "ai_store", "owner"] },
+        "text": { "type": "string" },
+        "productId": { "type": "string" },
+        "shipmentId": { "type": "string" },
+        "soundEffectId": { "type": "string" },
+        "mediaType": { "type": "string" },
+        "mediaLabel": { "type": "string" },
+        "expiresAtEpochMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "senderType", "text", "expiresAtEpochMs", "createdAt"]
+    },
+    "StoreStatus": {
+      "title": "StoreStatus",
+      "description": "6-hour AI-generated status update with SEO keywords and promotional media prompt.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "headline": { "type": "string" },
+        "caption": { "type": "string" },
+        "seoKeywords": { "type": "string" },
+        "imagePrompt": { "type": "string" },
+        "imageResKey": { "type": "string" },
+        "validUntilEpochMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "headline", "caption", "seoKeywords", "imagePrompt", "imageResKey", "validUntilEpochMs", "createdAt"]
+    },
+    "ShipmentOrder": {
+      "title": "ShipmentOrder",
+      "description": "Live shipment tracking card displayed in chat and orders.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "trackingCode": { "type": "string" },
+        "customerName": { "type": "string" },
+        "carrier": { "type": "string" },
+        "currentStep": { "type": "integer" },
+        "statusLabel": { "type": "string" },
+        "etaText": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "trackingCode", "customerName", "carrier", "currentStep", "statusLabel", "etaText", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user phone registration and role settings"
+    },
+    "/users/{userId}/storeConfig/{configId}": {
+      "schema": { "$ref": "#/entities/StoreConfig" },
+      "description": "Owner store configuration, theme, privacy, social, and subscription fee"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": { "$ref": "#/entities/StoreProduct" },
+      "description": "Store product catalog"
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Customer and AI store chat messages with disappearing timer"
+    },
+    "/users/{userId}/statuses/{statusId}": {
+      "schema": { "$ref": "#/entities/StoreStatus" },
+      "description": "6-hour AI-generated customer attraction statuses and Google SEO keywords"
+    },
+    "/users/{userId}/shipments/{shipmentId}": {
+      "schema": { "$ref": "#/entities/ShipmentOrder" },
+      "description": "Order shipment tracking records"
+    }
+  }
+}
