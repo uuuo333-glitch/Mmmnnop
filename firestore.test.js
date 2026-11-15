@@ -54,7 +54,7 @@ test("Unauthenticated user cannot read or write user profile or products", async
   );
 });
 
-test("Owner can create and read own UserProfile with valid schema", async () => {
+test("Owner can create and read own UserProfile with up to 3 WhatsApp Business numbers", async () => {
   const aliceDb = testEnv.authenticatedContext(ALICE_UID).firestore();
   const ts = pastDate();
   await assertSucceeds(
@@ -62,8 +62,12 @@ test("Owner can create and read own UserProfile with valid schema", async () => 
       userId: ALICE_UID,
       phoneNumber: "551234567",
       countryCode: "+966",
+      phoneNumber2: "552223334",
+      countryCode2: "+966",
+      phoneNumber3: "559998887",
+      countryCode3: "+971",
       displayName: "متجر السرعة",
-      role: "owner",
+      role: "customer",
       subscriptionActive: true,
       createdAt: ts,
       updatedAt: ts,

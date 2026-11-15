@@ -34,9 +34,14 @@ service cloud.firestore {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
              data.phoneNumber is string && data.phoneNumber.size() >= 6 && data.phoneNumber.size() <= 20 &&
              data.countryCode is string && data.countryCode.size() >= 1 && data.countryCode.size() <= 6 &&
+             (!('phoneNumber2' in data) || (data.phoneNumber2 is string && data.phoneNumber2.size() <= 20)) &&
+             (!('countryCode2' in data) || (data.countryCode2 is string && data.countryCode2.size() <= 6)) &&
+             (!('phoneNumber3' in data) || (data.phoneNumber3 is string && data.phoneNumber3.size() <= 20)) &&
+             (!('countryCode3' in data) || (data.countryCode3 is string && data.countryCode3.size() <= 6)) &&
              data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
              data.role in ['owner', 'customer'] &&
              data.subscriptionActive is bool &&
+             (!('subscriptionExpiresAtEpochMs' in data) || (data.subscriptionExpiresAtEpochMs is int && data.subscriptionExpiresAtEpochMs >= 0)) &&
              isValidTimestamp(data.createdAt) &&
              isValidTimestamp(data.updatedAt);
     }
@@ -45,8 +50,13 @@ service cloud.firestore {
       return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
              data.storeName is string && data.storeName.size() >= 1 && data.storeName.size() <= 60 &&
              (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 160)) &&
-             data.badgeLabel is string && data.badgeLabel.size() >= 1 && data.badgeLabel.size() <= 24 &&
+             data.badgeLabel is string && data.badgeLabel.size() >= 1 && data.badgeLabel.size() <= 40 &&
              data.isVerified is bool &&
+             (!('storeIconKey' in data) || (data.storeIconKey is string && data.storeIconKey.size() <= 32)) &&
+             (!('storeLogoFile' in data) || (data.storeLogoFile is string && data.storeLogoFile.size() <= 120)) &&
+             (!('orderButtonText' in data) || (data.orderButtonText is string && data.orderButtonText.size() <= 40)) &&
+             (!('chatInputPlaceholder' in data) || (data.chatInputPlaceholder is string && data.chatInputPlaceholder.size() <= 80)) &&
+             (!('catalogHeaderTitle' in data) || (data.catalogHeaderTitle is string && data.catalogHeaderTitle.size() <= 60)) &&
              data.tickerText is string && data.tickerText.size() <= 300 &&
              data.themeMode in ['dark', 'light', 'midnight'] &&
              data.accentColorHex is string && data.accentColorHex.size() >= 4 && data.accentColorHex.size() <= 12 &&
@@ -57,6 +67,20 @@ service cloud.firestore {
              data.blockMediaCopy is bool &&
              data.monthlySubscriptionPrice is number && data.monthlySubscriptionPrice >= 0 && data.monthlySubscriptionPrice <= 100000 &&
              data.subscriptionCurrency is string && data.subscriptionCurrency.size() >= 1 && data.subscriptionCurrency.size() <= 12 &&
+             (!('subscriptionMonths' in data) || (data.subscriptionMonths is int && data.subscriptionMonths >= 0 && data.subscriptionMonths <= 1200)) &&
+             (!('subscriptionDays' in data) || (data.subscriptionDays is int && data.subscriptionDays >= 0 && data.subscriptionDays <= 36500)) &&
+             (!('subscriptionAccessCode' in data) || (data.subscriptionAccessCode is string && data.subscriptionAccessCode.size() <= 24)) &&
+             (!('subscriptionRequired' in data) || data.subscriptionRequired is bool) &&
+             (!('hideOwnerLogin' in data) || data.hideOwnerLogin is bool) &&
+             (!('ownerAccessPin' in data) || (data.ownerAccessPin is string && data.ownerAccessPin.size() <= 12)) &&
+             (!('chatOfflineMode' in data) || data.chatOfflineMode is bool) &&
+             (!('chatBgMediaType' in data) || (data.chatBgMediaType in ['animated', 'photo', 'video', 'youtube', 'playlist'])) &&
+             (!('chatBgMediaUrl' in data) || (data.chatBgMediaUrl is string && data.chatBgMediaUrl.size() <= 400)) &&
+             (!('chatBgAutoRotate' in data) || data.chatBgAutoRotate is bool) &&
+             (!('chatBgRotateIntervalSec' in data) || (data.chatBgRotateIntervalSec is int && data.chatBgRotateIntervalSec >= 5 && data.chatBgRotateIntervalSec <= 300)) &&
+             (!('chatBgPlaylist' in data) || (data.chatBgPlaylist is string && data.chatBgPlaylist.size() <= 2000)) &&
+             (!('lastOwnerAlertSoundId' in data) || (data.lastOwnerAlertSoundId is string && data.lastOwnerAlertSoundId.size() <= 40)) &&
+             (!('lastOwnerAlertSeq' in data) || (data.lastOwnerAlertSeq is int && data.lastOwnerAlertSeq >= 0)) &&
              (!('instagramHandle' in data) || (data.instagramHandle is string && data.instagramHandle.size() <= 80)) &&
              (!('instagramBio' in data) || (data.instagramBio is string && data.instagramBio.size() <= 240)) &&
              (!('facebookUrl' in data) || (data.facebookUrl is string && data.facebookUrl.size() <= 160)) &&
@@ -129,7 +153,7 @@ service cloud.firestore {
                        isOwner(userId) &&
                        incoming().userId == userId &&
                        incoming().keys().hasAll(['userId', 'phoneNumber', 'countryCode', 'displayName', 'role', 'subscriptionActive', 'createdAt', 'updatedAt']) &&
-                       incoming().keys().hasOnly(['userId', 'phoneNumber', 'countryCode', 'displayName', 'role', 'subscriptionActive', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'phoneNumber', 'countryCode', 'phoneNumber2', 'countryCode2', 'phoneNumber3', 'countryCode3', 'displayName', 'role', 'subscriptionActive', 'subscriptionExpiresAtEpochMs', 'createdAt', 'updatedAt']) &&
                        isValidUserProfile(incoming());
 
       allow update: if isValidId(userId) &&
@@ -137,7 +161,7 @@ service cloud.firestore {
                        incoming().userId == existing().userId &&
                        incoming().createdAt == existing().createdAt &&
                        isValidUserProfile(incoming()) &&
-                       incoming().diff(existing()).affectedKeys().hasOnly(['phoneNumber', 'countryCode', 'displayName', 'role', 'subscriptionActive', 'updatedAt']);
+                       incoming().diff(existing()).affectedKeys().hasOnly(['phoneNumber', 'countryCode', 'phoneNumber2', 'countryCode2', 'phoneNumber3', 'countryCode3', 'displayName', 'role', 'subscriptionActive', 'subscriptionExpiresAtEpochMs', 'updatedAt']);
 
       allow delete: if isValidId(userId) && isOwner(userId);
 
@@ -149,7 +173,7 @@ service cloud.firestore {
                          isOwner(userId) &&
                          incoming().userId == userId &&
                          incoming().keys().hasAll(['userId', 'storeName', 'badgeLabel', 'isVerified', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'createdAt', 'updatedAt']) &&
-                         incoming().keys().hasOnly(['userId', 'storeName', 'tagline', 'badgeLabel', 'isVerified', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'instagramHandle', 'instagramBio', 'facebookUrl', 'snapchatHandle', 'seoKeywords', 'customField1Label', 'customField1Value', 'customField2Label', 'customField2Value', 'customField3Label', 'customField3Value', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'storeName', 'tagline', 'badgeLabel', 'isVerified', 'storeIconKey', 'storeLogoFile', 'orderButtonText', 'chatInputPlaceholder', 'catalogHeaderTitle', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'subscriptionMonths', 'subscriptionDays', 'subscriptionAccessCode', 'subscriptionRequired', 'hideOwnerLogin', 'ownerAccessPin', 'chatOfflineMode', 'chatBgMediaType', 'chatBgMediaUrl', 'chatBgAutoRotate', 'chatBgRotateIntervalSec', 'chatBgPlaylist', 'lastOwnerAlertSoundId', 'lastOwnerAlertSeq', 'instagramHandle', 'instagramBio', 'facebookUrl', 'snapchatHandle', 'seoKeywords', 'customField1Label', 'customField1Value', 'customField2Label', 'customField2Value', 'customField3Label', 'customField3Value', 'createdAt', 'updatedAt']) &&
                          isValidStoreConfig(incoming());
 
         allow update: if isValidId(userId) && isValidId(configId) &&
@@ -157,7 +181,7 @@ service cloud.firestore {
                          incoming().userId == existing().userId &&
                          incoming().createdAt == existing().createdAt &&
                          isValidStoreConfig(incoming()) &&
-                         incoming().diff(existing()).affectedKeys().hasOnly(['storeName', 'tagline', 'badgeLabel', 'isVerified', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'instagramHandle', 'instagramBio', 'facebookUrl', 'snapchatHandle', 'seoKeywords', 'customField1Label', 'customField1Value', 'customField2Label', 'customField2Value', 'customField3Label', 'customField3Value', 'updatedAt']);
+                         incoming().diff(existing()).affectedKeys().hasOnly(['storeName', 'tagline', 'badgeLabel', 'isVerified', 'storeIconKey', 'storeLogoFile', 'orderButtonText', 'chatInputPlaceholder', 'catalogHeaderTitle', 'tickerText', 'themeMode', 'accentColorHex', 'chatBackgroundId', 'activeAlertSound', 'disappearingMode', 'blockScreenshots', 'blockMediaCopy', 'monthlySubscriptionPrice', 'subscriptionCurrency', 'subscriptionMonths', 'subscriptionDays', 'subscriptionAccessCode', 'subscriptionRequired', 'hideOwnerLogin', 'ownerAccessPin', 'chatOfflineMode', 'chatBgMediaType', 'chatBgMediaUrl', 'chatBgAutoRotate', 'chatBgRotateIntervalSec', 'chatBgPlaylist', 'lastOwnerAlertSoundId', 'lastOwnerAlertSeq', 'instagramHandle', 'instagramBio', 'facebookUrl', 'snapchatHandle', 'seoKeywords', 'customField1Label', 'customField1Value', 'customField2Label', 'customField2Value', 'customField3Label', 'customField3Value', 'updatedAt']);
 
         allow delete: if isValidId(userId) && isValidId(configId) && isOwner(userId);
       }

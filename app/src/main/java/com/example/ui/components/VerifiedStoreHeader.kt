@@ -22,11 +22,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.Diamond
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,17 +47,30 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.R
 import com.example.data.model.DisappearingMode
 import com.example.data.model.SoundEffectType
 import com.example.data.model.StoreConfig
 import com.example.ui.theme.VerifiedBlue
+import java.io.File
+
+fun resolveStoreIcon(iconKey: String): ImageVector = when (iconKey) {
+    "turbo" -> Icons.Rounded.Bolt
+    "rocket" -> Icons.Rounded.RocketLaunch
+    "diamond" -> Icons.Rounded.Diamond
+    "bag" -> Icons.Rounded.ShoppingBag
+    "shield" -> Icons.Rounded.VerifiedUser
+    else -> Icons.Rounded.Storefront
+}
 
 @Composable
 fun VerifiedStoreHeader(
@@ -59,6 +78,8 @@ fun VerifiedStoreHeader(
     bellPulseCount: Int,
     onBellClick: () -> Unit,
     onStoreHeaderClick: () -> Unit,
+    isOwnerMode: Boolean = false,
+    onEditTickerClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val bellScale = remember { Animatable(1f) }
@@ -75,8 +96,13 @@ fun VerifiedStoreHeader(
         }
     }
 
+    val context = LocalContext.current
     val activeSound = SoundEffectType.fromId(storeConfig.activeAlertSound)
     val disappearingMode = DisappearingMode.fromId(storeConfig.disappearingMode)
+    val customLogoFile = remember(storeConfig.storeLogoFile) {
+        if (storeConfig.storeLogoFile.isNotBlank()) File(context.filesDir, storeConfig.storeLogoFile) else null
+    }
+    val storeIcon = resolveStoreIcon(storeConfig.storeIconKey)
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -85,7 +111,7 @@ fun VerifiedStoreHeader(
         shadowElevation = 4.dp
     ) {
         Column(modifier = Modifier.statusBarsPadding()) {
-            // Top WhatsApp-style Store Header Row
+            // Top WhatsApp Business-style Store Header Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -98,15 +124,27 @@ fun VerifiedStoreHeader(
                         .size(48.dp)
                         .clickable(onClick = onStoreHeaderClick)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_store_banner_1794675291139),
-                        contentDescription = "صورة المتجر",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    )
+                    if (customLogoFile != null && customLogoFile.exists()) {
+                        AsyncImage(
+                            model = customLogoFile,
+                            contentDescription = "شعار المتجر",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.img_store_banner_1794675291139),
+                            contentDescription = "صورة المتجر",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                        )
+                    }
                     if (storeConfig.isVerified) {
                         Icon(
                             imageVector = Icons.Rounded.Verified,
@@ -166,15 +204,17 @@ fun VerifiedStoreHeader(
                                 horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Storefront,
+                                    imageVector = storeIcon,
                                     contentDescription = null,
                                     tint = VerifiedBlue,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
-                                    text = storeConfig.badgeLabel.ifBlank { "المتجر" },
+                                    text = storeConfig.badgeLabel.ifBlank { "واتساب الأعمال • ${storeConfig.storeName}" },
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = VerifiedBlue
+                                    color = VerifiedBlue,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -271,6 +311,21 @@ fun VerifiedStoreHeader(
                             .weight(1f)
                             .basicMarquee(iterations = Int.MAX_VALUE)
                     )
+                    if (isOwnerMode) {
+                        IconButton(
+                            onClick = onEditTickerClick,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("edit_ticker_inline_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "تعديل الشريط العلوي المتحرك",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

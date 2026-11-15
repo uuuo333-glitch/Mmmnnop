@@ -8,7 +8,9 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -181,6 +183,7 @@ fun AnimatedStoreVideoReelCard(
     title: String,
     accentColor: Color,
     copyBlocked: Boolean,
+    onBlockedMediaAttempt: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val transition = rememberInfiniteTransition(label = "reel_anim")
@@ -208,6 +211,13 @@ fun AnimatedStoreVideoReelCard(
                     )
                 )
             )
+            .pointerInput(copyBlocked) {
+                if (copyBlocked) {
+                    detectTapGestures(
+                        onLongPress = { onBlockedMediaAttempt() }
+                    )
+                }
+            }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
@@ -284,7 +294,7 @@ fun AnimatedStoreVideoReelCard(
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
-                                text = "محمي من النسخ",
+                                text = "محمي ضد الحفظ والتسجيل",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White
                             )

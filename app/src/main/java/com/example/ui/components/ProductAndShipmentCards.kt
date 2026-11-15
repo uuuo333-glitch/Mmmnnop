@@ -20,6 +20,8 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.LocalShipping
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -55,6 +57,7 @@ fun InlineChatProductCard(
     product: StoreProduct,
     copyBlocked: Boolean,
     onOrderClick: (StoreProduct) -> Unit,
+    onBlockedMediaAttempt: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -71,6 +74,13 @@ fun InlineChatProductCard(
                     .fillMaxWidth()
                     .height(130.dp)
                     .clip(RoundedCornerShape(10.dp))
+                    .pointerInput(copyBlocked) {
+                        if (copyBlocked) {
+                            detectTapGestures(
+                                onLongPress = { onBlockedMediaAttempt() }
+                            )
+                        }
+                    }
             ) {
                 Image(
                     painter = painterResource(id = resolveProductDrawable(product.imageResKey)),
@@ -80,7 +90,7 @@ fun InlineChatProductCard(
                 )
                 if (copyBlocked) {
                     Surface(
-                        color = Color.Black.copy(alpha = 0.6f),
+                        color = Color.Black.copy(alpha = 0.65f),
                         shape = RoundedCornerShape(50),
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -93,12 +103,12 @@ fun InlineChatProductCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Lock,
-                                contentDescription = "نسخ الصورة محظور",
+                                contentDescription = "يمنع حفظ الصور وتسجيل الشاشة",
                                 tint = Color.White,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
-                                text = "محمي",
+                                text = "محمي ضد الحفظ",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White
                             )

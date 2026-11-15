@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -54,7 +56,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.data.model.StoreConfig
 import com.example.data.model.StoreProduct
+import com.example.ui.components.ChatDynamicBackdrop
 import com.example.ui.components.resolveProductDrawable
+import com.example.ui.components.resolveStoreIcon
 
 @Composable
 fun CatalogScreen(
@@ -64,29 +68,46 @@ fun CatalogScreen(
     onOrderProductInChat: (StoreProduct) -> Unit,
     onSaveProduct: (StoreProduct) -> Unit,
     onDeleteProduct: (String) -> Unit,
+    onBlockedMediaAttempt: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
+        ChatDynamicBackdrop(
+            storeConfig = storeConfig,
+            accentColor = MaterialTheme.colorScheme.primary,
+            isLightTheme = storeConfig.themeMode == "light",
+            onBlockedMediaAttempt = onBlockedMediaAttempt
+        )
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
                 tonalElevation = 4.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "كتالوج ${storeConfig.storeName}",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = resolveStoreIcon(storeConfig.storeIconKey),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = storeConfig.catalogHeaderTitle.ifBlank { "كتالوج ${storeConfig.storeName}" },
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
                     Text(
                         text = if (storeConfig.blockMediaCopy) {
-                            "الوسائط والصور محمية ضد النسخ والحفظ"
+                            "${storeConfig.badgeLabel} • الوسائط والصور محمية ضد الحفظ والتسجيل"
                         } else {
                             "استعرض المنتجات وأرسل طلبك مباشرة للمحادثة"
                         },
@@ -124,6 +145,11 @@ fun CatalogScreen(
                                         .fillMaxWidth()
                                         .height(165.dp)
                                         .clip(RoundedCornerShape(14.dp))
+                                        .pointerInput(storeConfig.blockMediaCopy) {
+                                            if (storeConfig.blockMediaCopy) {
+                                                detectTapGestures(onLongPress = { onBlockedMediaAttempt() })
+                                            }
+                                        }
                                 ) {
                                     Image(
                                         painter = painterResource(id = resolveProductDrawable(product.imageResKey)),
@@ -213,9 +239,13 @@ fun CatalogScreen(
                                         modifier = Modifier.weight(1f),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Icon(Icons.Rounded.ShoppingBag, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Icon(
+                                            imageVector = resolveStoreIcon(storeConfig.storeIconKey),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("طلب في المحادثة")
+                                        Text(storeConfig.orderButtonText.ifBlank { "طلب في المحادثة" })
                                     }
                                     if (isOwnerMode) {
                                         IconButton(onClick = { onDeleteProduct(product.id) }) {

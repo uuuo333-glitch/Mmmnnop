@@ -11,6 +11,7 @@ import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.ImagePart
 import com.google.firebase.ai.type.ResponseModality
 import com.google.firebase.ai.type.Schema
+import com.google.firebase.ai.type.content
 import com.google.firebase.ai.type.generationConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -70,6 +71,25 @@ class StoreAiRepository {
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
                 responseSchema = statusSchema
+            }
+        )
+    }
+
+    private val bgScenesSchema = Schema.obj(
+        properties = mapOf(
+            "prompts" to Schema.array(
+                items = Schema.string(description = "Visual scene prompt in English for a dark moody chat wallpaper frame, rich contrast suitable behind chat bubbles, no text or watermarks."),
+                description = "3 cohesive evolving scene prompts forming a dynamic rotating chat backdrop sequence."
+            )
+        )
+    )
+
+    private val bgScenesModel by lazy {
+        Firebase.ai.generativeModel(
+            modelName = "gemini-3.8-flash",
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                responseSchema = bgScenesSchema
             }
         )
     }
@@ -204,6 +224,97 @@ class StoreAiRepository {
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "Image generation failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun editPromoImage(inputBitmap: Bitmap, editInstruction: String): Result<Bitmap> {
+        return try {
+            val response = withTimeout(60_000L) {
+                imageModel.generateContent(
+                    content {
+                        image(inputBitmap)
+                        text(editInstruction)
+                    }
+                )
+            }
+            val bitmap = response.candidates.firstOrNull()
+                ?.content?.parts?.filterIsInstance<ImagePart>()
+                ?.firstOrNull()?.image
+            if (bitmap != null) {
+                Result.success(bitmap)
+            } else {
+                Result.failure(Exception("لم يُرجع نموذج تعديل الصور أي صورة."))
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "Image editing timed out", e)
+            Result.failure(Exception("انتهت مهلة تعديل الصورة (60 ثانية)."))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Image editing failed", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun generateAnimatedBgScenes(
+        themePrompt: String,
+        storeConfig: StoreConfig,
+        frameCount: Int = 3
+    ): Result<List<Bitmap>> {
+        return try {
+            val safeCount = frameCount.coerceIn(2, 4)
+            val cleanHint = themePrompt.trim().ifBlank {
+                "Luxury dark automotive turbo neon motion night atmosphere for ${storeConfig.storeName}"
+            }
+            val plannerPrompt = """
+                Create $safeCount distinct yet cohesive visual scene prompts in English for rotating animated-style chat wallpaper backgrounds for the store "${storeConfig.storeName}".
+                User theme request: "$cleanHint"
+                Each prompt must describe atmospheric lighting, cinematic depth, deep contrast suitable behind messaging bubbles, and NO text, NO logos, NO watermarks.
+                Make each scene feel like a smooth progression (e.g., frame 1 wide cinematic neon angle, frame 2 glowing speed light trails, frame 3 close-up reflections & aurora glow).
+            """.trimIndent()
+
+            val scenePlanResp = withTimeout(60_000L) {
+                bgScenesModel.generateContent(plannerPrompt)
+            }
+            val scenePrompts = mutableListOf<String>()
+            val jsonObj = scenePlanResp.text?.let { runCatching { JSONObject(it) }.getOrNull() }
+            val arr = jsonObj?.optJSONArray("prompts")
+            if (arr != null) {
+                for (i in 0 until arr.length()) {
+                    val item = arr.optString(i).trim()
+                    if (item.isNotEmpty()) scenePrompts.add(item)
+                }
+            }
+            while (scenePrompts.size < safeCount) {
+                val idx = scenePrompts.size + 1
+                scenePrompts.add("Cinematic dark atmospheric wallpaper frame #$idx for $cleanHint, glowing neon highlights, sleek motion blur, no text")
+            }
+
+            val bitmaps = mutableListOf<Bitmap>()
+            for (scenePrompt in scenePrompts.take(safeCount)) {
+                val bmpResp = withTimeout(60_000L) {
+                    imageModel.generateContent(scenePrompt)
+                }
+                val bmp = bmpResp.candidates.firstOrNull()
+                    ?.content?.parts?.filterIsInstance<ImagePart>()
+                    ?.firstOrNull()?.image
+                if (bmp != null) {
+                    bitmaps.add(bmp)
+                }
+            }
+            if (bitmaps.isNotEmpty()) {
+                Result.success(bitmaps)
+            } else {
+                Result.failure(Exception("تعذر توليد صور الخلفية من نموذج الذكاء الاصطناعي."))
+            }
+        } catch (e: TimeoutCancellationException) {
+            Log.e(TAG, "Animated bg generation timed out", e)
+            Result.failure(Exception("انتهت مهلة توليد خلفيات المحادثة بالذكاء الاصطناعي."))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Animated bg generation failed", e)
             Result.failure(e)
         }
     }

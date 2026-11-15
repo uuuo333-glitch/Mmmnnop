@@ -83,6 +83,9 @@ class SoundEffectEngine {
         SoundEffectType.GLASS_SHATTER -> synthGlassShatter()
         SoundEffectType.TURBO_SPOOL -> synthTurboSpool()
         SoundEffectType.EXHAUST_POPS -> synthExhaustPops()
+        SoundEffectType.ENGINE_REV -> synthEngineRev()
+        SoundEffectType.PASSING_ROCKET -> synthPassingRocket()
+        SoundEffectType.JET_AIRPLANE -> synthJetAirplane()
     }
 
     private fun synthTruckHorn(): ShortArray {
@@ -244,6 +247,75 @@ class SoundEffectEngine {
             }
             val env = if (t > 1.2) (1.35 - t) / 0.15 else 1.0
             out[i] = ((rumble + pops) * env * 22000).toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return out
+    }
+
+    private fun synthEngineRev(): ShortArray {
+        val durationSec = 1.6
+        val n = (SAMPLE_RATE * durationSec).toInt()
+        val out = ShortArray(n)
+        var phase = 0.0
+        for (i in 0 until n) {
+            val t = i.toDouble() / SAMPLE_RATE
+            val throttle = when {
+                t < 0.25 -> 0.2
+                t < 0.90 -> 0.2 + 0.8 * ((t - 0.25) / 0.65)
+                else -> 1.0 - 0.75 * ((t - 0.90) / 0.70)
+            }.coerceIn(0.15, 1.0)
+            val baseFreq = 62.0 + 185.0 * throttle
+            phase += 2 * PI * baseFreq / SAMPLE_RATE
+            val v8 = 0.42 * sin(phase) +
+                0.30 * sin(phase * 2.0) +
+                0.18 * sawPhase(phase * 1.5) +
+                0.10 * sin(phase * 4.0)
+            val env = when {
+                t < 0.06 -> t / 0.06
+                t > 1.42 -> (1.6 - t) / 0.18
+                else -> 1.0
+            }.coerceIn(0.0, 1.0)
+            out[i] = (v8 * env * 25000).toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return out
+    }
+
+    private fun synthPassingRocket(): ShortArray {
+        val durationSec = 1.6
+        val n = (SAMPLE_RATE * durationSec).toInt()
+        val out = ShortArray(n)
+        var phase = 0.0
+        var lowNoise = 0.0
+        for (i in 0 until n) {
+            val t = i.toDouble() / SAMPLE_RATE
+            val passCenter = t - 0.72
+            val dopplerGain = exp(-passCenter * passCenter * 5.2)
+            val whistleFreq = 460.0 + 620.0 * (1.0 / (1.0 + exp(passCenter * 6.5)))
+            phase += 2 * PI * whistleFreq / SAMPLE_RATE
+            val white = Random.nextDouble() * 2.0 - 1.0
+            lowNoise = lowNoise * 0.82 + white * 0.18
+            val crackle = if (t > 0.72 && Random.nextDouble() > 0.92) white * 0.65 else 0.0
+            val sample = (lowNoise * 1.15 + 0.35 * sin(phase) + crackle) * dopplerGain
+            out[i] = (sample * 27000).toInt().coerceIn(-32767, 32767).toShort()
+        }
+        return out
+    }
+
+    private fun synthJetAirplane(): ShortArray {
+        val durationSec = 1.75
+        val n = (SAMPLE_RATE * durationSec).toInt()
+        val out = ShortArray(n)
+        var turbinePhase = 0.0
+        var lowRoar = 0.0
+        for (i in 0 until n) {
+            val t = i.toDouble() / SAMPLE_RATE
+            val passPos = t - 0.85
+            val jetGain = exp(-passPos * passPos * 3.0)
+            val turbineFreq = 1150.0 + 950.0 * (1.0 / (1.0 + exp(passPos * 4.5)))
+            turbinePhase += 2 * PI * turbineFreq / SAMPLE_RATE
+            val white = Random.nextDouble() * 2.0 - 1.0
+            lowRoar = lowRoar * 0.88 + white * 0.12
+            val roar = lowRoar * 1.2 + 0.25 * sin(turbinePhase) + 0.12 * sin(turbinePhase * 2.0)
+            out[i] = (roar * jetGain * 26500).toInt().coerceIn(-32767, 32767).toShort()
         }
         return out
     }
